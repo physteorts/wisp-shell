@@ -78,7 +78,9 @@ ColumnLayout {
 
         CardRow {
             Layout.fillWidth: true
+            clickable: true
             leadingIcon: "\ue1bc"
+            trailingIcon: "\ue5cc"
             title: "Wallpaper"
             subtitle: WallpaperService.hasWallpaper ? WallpaperService.currentWallpaper.replace(/^file:\/\//, "") : "No wallpaper selected"
             onClicked: SettingsService.openWallpaperPicker()

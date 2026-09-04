@@ -8,30 +8,33 @@ Rectangle {
     property string title: ""
     property string subtitle: ""
     property string leadingIcon: ""
-    property string trailingIcon: "\ue5cc"
+    property string trailingIcon: ""
     property real subtitleMaxWidth: 320
 
     property real rowHeight: 48
     property real rowRadius: Config.radius
-    property real horizontalPadding: 8
+    property real horizontalPadding: 12
     property real contentSpacing: 12
     property real iconSize: 20
     property real titleSize: 13
     property real subtitleSize: 11
+
+    property bool clickable: false
 
     property color idleColor: "transparent"
     property color hoverColor: Color.overlay
     property color textColor: Color.text
     property color mutedColor: Color.muted
 
+    property alias leadingContent: leadingSlot.data
     default property alias trailingContent: trailingSlot.data
 
     signal clicked
 
     Layout.fillWidth: true
-    height: root.rowHeight
+    implicitHeight: Math.max(root.rowHeight, labelsCol.implicitHeight + 16)
     radius: root.rowRadius
-    color: rowMouseArea.containsMouse ? root.hoverColor : root.idleColor
+    color: (root.clickable && rowMouseArea.containsMouse) ? root.hoverColor : root.idleColor
 
     RowLayout {
         anchors.fill: parent
@@ -39,17 +42,28 @@ Rectangle {
         anchors.rightMargin: root.horizontalPadding
         spacing: root.contentSpacing
 
+        Item {
+            id: leadingSlot
+            visible: children.length > 0
+            implicitWidth: children.length > 0 ? children[0].implicitWidth || root.iconSize : 0
+            implicitHeight: children.length > 0 ? children[0].implicitHeight || root.iconSize : 0
+            Layout.alignment: Qt.AlignVCenter
+        }
+
         Text {
-            visible: root.leadingIcon.length > 0
+            visible: leadingSlot.children.length === 0 && root.leadingIcon.length > 0
             text: root.leadingIcon
             font.family: Config.iconFont
             font.pixelSize: root.iconSize
             color: root.textColor
             verticalAlignment: Text.AlignVCenter
+            Layout.alignment: Qt.AlignVCenter
         }
 
         ColumnLayout {
+            id: labelsCol
             Layout.fillWidth: true
+            Layout.alignment: Qt.AlignVCenter
             spacing: 2
 
             Text {
@@ -66,7 +80,7 @@ Rectangle {
                 font.family: Config.textFont
                 font.pixelSize: root.subtitleSize
                 color: root.mutedColor
-                elide: Text.ElideMiddle
+                wrapMode: Text.WordWrap
                 Layout.fillWidth: true
                 Layout.maximumWidth: root.subtitleMaxWidth
                 visible: root.subtitle.length > 0
@@ -75,6 +89,8 @@ Rectangle {
 
         Item {
             id: trailingSlot
+            visible: children.length > 1 || root.trailingIcon.length > 0
+            Layout.rightMargin: 4
             Layout.alignment: Qt.AlignVCenter
 
             Text {
@@ -85,6 +101,7 @@ Rectangle {
                 font.pixelSize: root.iconSize
                 color: root.textColor
                 verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
             }
         }
     }
@@ -92,8 +109,9 @@ Rectangle {
     MouseArea {
         id: rowMouseArea
         anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
+        enabled: root.clickable
+        hoverEnabled: root.clickable
+        cursorShape: root.clickable ? Qt.PointingHandCursor : Qt.ArrowCursor
         onClicked: root.clicked()
     }
 }

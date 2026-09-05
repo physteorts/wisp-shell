@@ -17,16 +17,6 @@ Scope {
             required property var modelData
             screen: modelData
             color: Color.background
-            opacity: 0
-
-            Component.onCompleted: opacity = 1
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: 280
-                    easing.type: Easing.OutCubic
-                }
-            }
 
             anchors {
                 top: true
@@ -220,9 +210,7 @@ Scope {
                 }
             }
 
-            Component.onCompleted: {
-                passInput.forceActiveFocus();
-            }
+            Component.onCompleted: passInput.forceActiveFocus()
 
             Connections {
                 target: GreetdService

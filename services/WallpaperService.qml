@@ -12,14 +12,67 @@ Singleton {
 
     property string currentWallpaper: Config.wallpaper
     readonly property bool hasWallpaper: currentWallpaper !== ""
+    readonly property string wallpaperPath: Config.configDir + "/wallpaper.jpg"
+    property string pendingWallpaper: ""
+    property string copyingWallpaper: ""
+
+    Process {
+        id: copyProcess
+
+        onExited: exitCode => {
+            const copiedWallpaper = service.copyingWallpaper;
+            service.copyingWallpaper = "";
+
+            if (exitCode === 0) {
+                const copiedPath = service.formatPath(service.wallpaperPath);
+                service.currentWallpaper = copiedPath;
+                Config.setWallpaper(copiedPath);
+            } else {
+                console.warn("[WallpaperService] Failed to copy wallpaper:", copiedWallpaper);
+            }
+
+            if (service.pendingWallpaper && service.pendingWallpaper !== copiedWallpaper) {
+                const nextWallpaper = service.pendingWallpaper;
+                service.pendingWallpaper = "";
+                service.copyWallpaper(nextWallpaper);
+            } else {
+                service.pendingWallpaper = "";
+            }
+        }
+    }
 
     Connections {
         target: Config
         function onWallpaperChanged(): void {
-            if (Config.wallpaper !== service.currentWallpaper) {
-                service.currentWallpaper = Config.wallpaper;
-            }
+            service.copyWallpaper(Config.wallpaper);
         }
+
+        function onTargetHomeChanged(): void {
+            service.copyWallpaper(Config.wallpaper);
+        }
+    }
+
+    function copyWallpaper(path: string): void {
+        const formatted = formatPath(path);
+        if (!formatted || !formatted.startsWith("file://")) {
+            currentWallpaper = formatted;
+            if (formatted && typeof Config.setWallpaper === "function")
+                Config.setWallpaper(formatted);
+            return;
+        }
+
+        const sourcePath = formatted.replace(/^file:\/\//, "");
+        if (sourcePath === wallpaperPath)
+            return;
+
+        if (copyProcess.running) {
+            pendingWallpaper = formatted;
+            return;
+        }
+
+        copyingWallpaper = formatted;
+        copyProcess.command = ["install", "-m", "0644", sourcePath, wallpaperPath];
+        copyProcess.running = true;
     }
 
     function formatPath(path: string): string {
@@ -32,13 +85,7 @@ Singleton {
     }
 
     function setWallpaper(path: string): void {
-        const formatted = formatPath(path);
-        if (formatted !== currentWallpaper) {
-            currentWallpaper = formatted;
-            if (typeof Config.setWallpaper === "function") {
-                Config.setWallpaper(formatted);
-            }
-        }
+        copyWallpaper(path);
     }
 
     function clear(): void {

@@ -2,12 +2,12 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.configs
 
 Singleton {
     id: root
 
-    readonly property string homeDir: Quickshell.env("HOME") ?? ""
-    readonly property string configDir: homeDir + "/.config/wisp-shell"
+    readonly property string configDir: Config.configDir
     readonly property string configPath: configDir + "/colors.json"
 
     readonly property var darkPalette: ({

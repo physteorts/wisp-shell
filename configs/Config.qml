@@ -7,7 +7,9 @@ Singleton {
     id: config
 
     readonly property string homeDir: Quickshell.env("HOME") ?? ""
-    readonly property string configDir: homeDir + "/.config/wisp-shell"
+    property string targetUser: ""
+    property string targetHome: homeDir
+    readonly property string configDir: targetHome + "/.config/wisp-shell"
     readonly property string configPath: configDir + "/settings.json"
 
     property var settings: ({
@@ -57,6 +59,23 @@ Singleton {
         onPathChanged: {
             config.load();
         }
+    }
+
+    Process {
+        id: userProcess
+        command: ["sh", "-c", "getent passwd | awk -F: '$3 >= 1000 && $6 ~ /^\\/home\\// && $7 !~ /(nologin|false)$/ {print $1 \"|\" $6; exit}'"]
+
+        stdout: SplitParser {
+            onRead: data => {
+                const parts = data.trim().split("|");
+                if (parts.length === 2 && parts[0] && parts[1]) {
+                    config.targetUser = parts[0];
+                    config.targetHome = parts[1];
+                }
+            }
+        }
+
+        running: true
     }
 
     function load(): void {

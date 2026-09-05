@@ -41,16 +41,22 @@ Singleton {
         })
 
     property bool isDark: true
+    property bool isDynamicPalette: true
+    property int revision: 0
 
     property var colorData: ({
             dark: darkPalette,
             light: lightPalette
         })
 
-    readonly property var palette: isDark ? colorData.dark : colorData.light
+    readonly property var palette: {
+        root.revision; // Re-evaluate whenever revision increments
+        return isDark ? colorData.dark : colorData.light;
+    }
 
-    function getColor(key: string): color {
-        return palette?.[key];
+    function getColor(key) {
+        root.revision;
+        return palette?.[key] ?? "#000000";
     }
 
     readonly property color background: getColor("background")
@@ -69,6 +75,8 @@ Singleton {
     Process {
         id: initProcess
         command: ["sh", "-c", "mkdir -p '" + root.configDir + "' && " + "if [ ! -f '" + root.configPath + "' ]; then " + "  cat << 'EOF' > '" + root.configPath + "'\n" + JSON.stringify({
+                isDark: root.isDark,
+                isDynamicPalette: root.isDynamicPalette,
                 dark: root.darkPalette,
                 light: root.lightPalette
             }, null, 2) + "\nEOF\n" + "fi"]
@@ -83,10 +91,9 @@ Singleton {
 
     Process {
         id: writeProcess
-
         onExited: exitCode => {
-            if (exitCode === 0) {
-                fileView.reload();
+            if (exitCode !== 0) {
+                console.error("[Color] Error writing colors.json:", exitCode);
             }
         }
     }
@@ -95,30 +102,55 @@ Singleton {
         id: fileView
         path: root.configPath
 
-        onLoaded: {
-            root.load();
-        }
-
-        onPathChanged: {
-            root.load();
-        }
+        onLoaded: root.load()
+        onPathChanged: root.load()
     }
 
-    function load(): void {
+    function load() {
         const text = fileView.text();
         if (!text || text.trim() === "")
             return;
 
-        const parsed = JSON.parse(text);
-        if (parsed.dark || parsed.light) {
-            colorData = {
-                dark: Object.assign({}, darkPalette, parsed.dark ?? {}),
-                light: Object.assign({}, lightPalette, parsed.light ?? {})
-            };
+        try {
+            const parsed = JSON.parse(text);
+            if (typeof parsed.isDark === "boolean") {
+                root.isDark = parsed.isDark;
+            }
+            if (typeof parsed.isDynamicPalette === "boolean") {
+                root.isDynamicPalette = parsed.isDynamicPalette;
+            }
+            if (parsed.dark || parsed.light) {
+                colorData = {
+                    dark: Object.assign({}, darkPalette, parsed.dark ?? {}),
+                    light: Object.assign({}, lightPalette, parsed.light ?? {})
+                };
+                root.revision++;
+            }
+        } catch (e) {
+            console.warn("[Color] Failed to parse colors.json:", e);
         }
     }
 
-    function setColor(key: string, value: string): void {
+    function updatePalette(newPaletteData, saveToFile) {
+        if (!newPaletteData)
+            return;
+
+        if (saveToFile === undefined) {
+            saveToFile = true;
+        }
+
+        colorData = {
+            dark: Object.assign({}, colorData.dark, newPaletteData.dark ?? {}),
+            light: Object.assign({}, colorData.light, newPaletteData.light ?? {})
+        };
+        root.revision++;
+
+        if (saveToFile) {
+            save();
+        }
+    }
+
+    function setColor(key, value) {
         const mode = isDark ? "dark" : "light";
         const updated = Object.assign({}, colorData);
         const modeCopy = Object.assign({}, updated[mode]);
@@ -127,20 +159,39 @@ Singleton {
         updated[mode] = modeCopy;
 
         colorData = updated;
+        root.revision++;
         save();
     }
 
-    function setPalette(mode: string, newPalette: var): void {
+    function setPalette(mode, newPalette) {
         if (mode !== "dark" && mode !== "light")
             return;
         const updated = Object.assign({}, colorData);
         updated[mode] = Object.assign({}, updated[mode], newPalette);
         colorData = updated;
+        root.revision++;
         save();
     }
 
-    function save(): void {
+    function setDark(dark) {
+        if (root.isDark !== dark) {
+            root.isDark = dark;
+            root.revision++;
+            save();
+        }
+    }
+
+    function setDynamicPalette(dynamic) {
+        if (root.isDynamicPalette !== dynamic) {
+            root.isDynamicPalette = dynamic;
+            save();
+        }
+    }
+
+    function save() {
         const payload = {
+            isDark: root.isDark,
+            isDynamicPalette: root.isDynamicPalette,
             dark: colorData.dark,
             light: colorData.light
         };
@@ -158,6 +209,18 @@ Singleton {
 
         function get(key: string): string {
             return root.palette[key] ?? "";
+        }
+
+        function toggleMode(): void {
+            root.setDark(!root.isDark);
+        }
+
+        function setDarkMode(val: bool): void {
+            root.setDark(val);
+        }
+
+        function setDynamic(val: bool): void {
+            root.setDynamicPalette(val);
         }
     }
 }

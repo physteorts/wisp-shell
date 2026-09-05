@@ -13,8 +13,7 @@ Rectangle {
 
     property real rowHeight: 48
     property real rowRadius: Config.radius
-    property real horizontalPadding: 12
-    property real contentSpacing: 12
+    property real horizontalPadding: 8
     property real iconSize: 20
     property real titleSize: 13
     property real subtitleSize: 11
@@ -40,7 +39,6 @@ Rectangle {
         anchors.fill: parent
         anchors.leftMargin: root.horizontalPadding
         anchors.rightMargin: root.horizontalPadding
-        spacing: root.contentSpacing
 
         Item {
             id: leadingSlot

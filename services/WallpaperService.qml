@@ -3,16 +3,19 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.configs
+import qs.services
 
 Singleton {
     id: service
+
+    readonly property var _matugen: MatugenService
 
     property string currentWallpaper: Config.wallpaper
     readonly property bool hasWallpaper: currentWallpaper !== ""
 
     Connections {
         target: Config
-        function onWallpaperChanged() {
+        function onWallpaperChanged(): void {
             if (Config.wallpaper !== service.currentWallpaper) {
                 service.currentWallpaper = Config.wallpaper;
             }
@@ -32,13 +35,17 @@ Singleton {
         const formatted = formatPath(path);
         if (formatted !== currentWallpaper) {
             currentWallpaper = formatted;
-            Config.setWallpaper(formatted);
+            if (typeof Config.setWallpaper === "function") {
+                Config.setWallpaper(formatted);
+            }
         }
     }
 
     function clear(): void {
         currentWallpaper = "";
-        Config.setWallpaper("");
+        if (typeof Config.setWallpaper === "function") {
+            Config.setWallpaper("");
+        }
     }
 
     property IpcHandler wallpaperIpc: IpcHandler {

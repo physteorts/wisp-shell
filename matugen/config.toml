@@ -1,0 +1,6 @@
+[config]
+
+[templates.ghostty]
+input_path = '~/.config/quickshell/wisp-shell/matugen/templates/ghostty.conf'
+output_path = '~/.config/ghostty/theme.conf'
+post_hook = 'gdbus call --session --dest com.mitchellh.ghostty --object-path /com/mitchellh/ghostty --method org.gtk.Actions.Activate reload-config "[]" "{}"'

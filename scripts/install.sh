@@ -43,13 +43,13 @@ install_packages() {
 
     if command -v dnf >/dev/null 2>&1; then
         package_manager=dnf
-        packages=(quickshell greetd niri python3 acl polkit glib2 fontconfig)
+        packages=(git findutils gawk quickshell greetd niri python3 acl polkit glib2 fontconfig)
     elif command -v pacman >/dev/null 2>&1; then
         package_manager=pacman
-        packages=(quickshell greetd niri python python-pip acl polkit glib2 fontconfig)
+        packages=(git findutils gawk quickshell greetd niri python python-pip acl polkit glib2 fontconfig)
     elif command -v apt-get >/dev/null 2>&1; then
         package_manager=apt-get
-        packages=(python3 acl policykit-1 libglib2.0-bin fontconfig)
+        packages=(git findutils gawk python3 acl policykit-1 libglib2.0-bin fontconfig)
         log "Quickshell, greetd, Niri, and Matugen may require third-party repositories on Debian-based systems."
     else
         fail "Unsupported distribution: install Quickshell, greetd, Niri, Python 3, acl, polkit, glib2, and fontconfig manually."
@@ -124,6 +124,7 @@ export XDG_DATA_DIRS="/usr/local/share:/usr/share"
 exec niri --config /etc/greetd/niri-greeter.kdl >/dev/null 2>&1
 EOF
     chmod 0755 "$launcher"
+    run_root rm -f /usr/local/bin/wisp-greeter
     run_root install -o root -g root -m 0755 "$launcher" /usr/local/bin/wisp-greeter
     rm -f "$launcher"
 
@@ -155,6 +156,7 @@ hotkey-overlay {
     skip-at-startup
 }
 EOF
+    run_root rm -f /etc/greetd/niri-greeter.kdl
     run_root install -o root -g root -m 0644 "$greeter_config" /etc/greetd/niri-greeter.kdl
     rm -f "$greeter_config"
 
@@ -177,6 +179,7 @@ EOF
                 if (!seen_user) print "user = \"greeter\""
             }
         ' /etc/greetd/config.toml > "$greetd_config"
+        run_root rm -f /etc/greetd/config.toml
         run_root install -o root -g root -m 0644 "$greetd_config" /etc/greetd/config.toml
         rm -f "$greetd_config"
     fi
@@ -194,9 +197,10 @@ setup_access() {
 
 main() {
     [[ $EUID -ne 0 ]] || fail "Run this installer as your normal user; it will request sudo when needed."
+    need_command sudo
 
-    prepare_project
     install_packages
+    prepare_project
     install_matugen
     setup_access
     install_greeter_files
@@ -205,6 +209,10 @@ main() {
     need_command niri
     need_command python3
     need_command matugen
+    need_command awk
+    need_command getent
+    need_command install
+    need_command systemctl
     log "Installation complete. Restart greetd to launch the greeter."
 }
 

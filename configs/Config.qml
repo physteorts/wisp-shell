@@ -16,17 +16,21 @@ Singleton {
             wallpaper: "",
             radius: 12,
             iconFont: "Material Symbols Rounded",
-            textFont: "Inter"
+            textFont: "Inter",
+            idleLockTimeout: 0,
+            selectedSession: ""
         })
 
     readonly property string wallpaper: settings.wallpaper
     readonly property int radius: settings.radius
     readonly property string iconFont: settings.iconFont
     readonly property string textFont: settings.textFont
+    readonly property int idleLockTimeout: Math.max(0, Number(settings.idleLockTimeout) || 0)
+    readonly property string selectedSession: settings.selectedSession || ""
 
     Process {
         id: initProcess
-        command: ["sh", "-c", "mkdir -p '" + config.configDir + "' && " + "if [ ! -f '" + config.configPath + "' ]; then " + "  echo '{\"wallpaper\": \"\", \"radius\": 12, \"iconFont\": \"Material Symbols Rounded\", \"textFont\": \"Inter\"}' > '" + config.configPath + "'; " + "fi"]
+        command: ["sh", "-c", "mkdir -p '" + config.configDir + "' && " + "if [ ! -f '" + config.configPath + "' ]; then " + "  echo '{\"wallpaper\": \"\", \"radius\": 12, \"iconFont\": \"Material Symbols Rounded\", \"textFont\": \"Inter\", \"idleLockTimeout\": 0, \"selectedSession\": \"\"}' > '" + config.configPath + "'; " + "fi"]
         running: true
 
         onExited: exitCode => {
@@ -115,6 +119,20 @@ Singleton {
     function setTextFont(fontName: string): void {
         const updated = Object.assign({}, settings);
         updated.textFont = fontName;
+        settings = updated;
+        save();
+    }
+
+    function setIdleLockTimeout(minutes: int): void {
+        const updated = Object.assign({}, settings);
+        updated.idleLockTimeout = Math.max(0, minutes);
+        settings = updated;
+        save();
+    }
+
+    function setSelectedSession(sessionName: string): void {
+        const updated = Object.assign({}, settings);
+        updated.selectedSession = sessionName;
         settings = updated;
         save();
     }

@@ -17,6 +17,16 @@ Scope {
             required property var modelData
             screen: modelData
             color: Color.background
+            opacity: 0
+
+            Component.onCompleted: opacity = 1
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 280
+                    easing.type: Easing.OutCubic
+                }
+            }
 
             anchors {
                 top: true
@@ -32,14 +42,17 @@ Scope {
             // Wallpaper Background
             Image {
                 anchors.fill: parent
-                source: WallpaperService.currentWallpaper
+                source: "file://" + Config.configDir + "/wallpaper.jpg"
                 fillMode: Image.PreserveAspectCrop
-                visible: WallpaperService.hasWallpaper
+                visible: true
+                cache: false
+                asynchronous: true
                 opacity: 0.4
             }
 
             // Top Bar: Session Chooser
             RowLayout {
+                z: 1
                 anchors {
                     top: parent.top
                     right: parent.right
@@ -57,16 +70,18 @@ Scope {
                 Button {
                     variant: "secondary"
                     buttonHeight: 34
-                    text: GreetdService.availableSessions[GreetdService.selectedSessionIndex].name
+                    text: GreetdService.isLoadingSessions ? "Loading sessions..." : (GreetdService.selectedSession ? GreetdService.selectedSession.name : "No sessions found")
                     leadingIcon: "\uef55"
+                    enabled: !GreetdService.isLoadingSessions && GreetdService.availableSessions.length > 0
                     onClicked: {
-                        GreetdService.selectedSessionIndex = (GreetdService.selectedSessionIndex + 1) % GreetdService.availableSessions.length;
+                        GreetdService.selectSession((GreetdService.selectedSessionIndex + 1) % GreetdService.availableSessions.length);
                     }
                 }
             }
 
             // Center Panel: Clock & Credentials
             ColumnLayout {
+                z: 1
                 anchors.centerIn: parent
                 width: 320
                 spacing: 20
@@ -172,6 +187,7 @@ Scope {
 
             // Bottom Actions: Power controls
             RowLayout {
+                z: 1
                 anchors {
                     bottom: parent.bottom
                     horizontalCenter: parent.horizontalCenter
@@ -206,6 +222,17 @@ Scope {
 
             Component.onCompleted: {
                 passInput.forceActiveFocus();
+            }
+
+            Connections {
+                target: GreetdService
+
+                function onLoginFailedChanged(): void {
+                    if (GreetdService.loginFailed) {
+                        passInput.text = "";
+                        passInput.forceActiveFocus();
+                    }
+                }
             }
         }
     }

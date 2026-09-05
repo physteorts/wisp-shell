@@ -1,11 +1,20 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_SOURCE="${BASH_SOURCE[0]-}"
+if [[ -n "$SCRIPT_SOURCE" && -f "$SCRIPT_SOURCE" ]]; then
+    readonly SCRIPT_DIR="$(cd -- "$(dirname -- "$SCRIPT_SOURCE")" && pwd)"
+else
+    readonly SCRIPT_DIR=""
+fi
 readonly CONFIG_DIR="$HOME/.config/wisp-shell"
 readonly GREETER_USER="greeter"
 readonly REPOSITORY_URL="https://github.com/physteorts/wisp-shell.git"
-PROJECT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+if [[ -n "$SCRIPT_DIR" ]]; then
+    PROJECT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+else
+    PROJECT_DIR="$HOME/.config/quickshell/wisp-shell"
+fi
 
 log() {
     printf '[wisp-shell] %s\n' "$*"
@@ -112,7 +121,7 @@ chmod 0700 "\$XDG_RUNTIME_DIR"
 export XDG_SESSION_TYPE=wayland
 export QT_QPA_PLATFORM=wayland
 export XDG_DATA_DIRS="/usr/local/share:/usr/share"
-exec niri --config /etc/greetd/niri-greeter.kdl
+exec niri --config /etc/greetd/niri-greeter.kdl >/dev/null 2>&1
 EOF
     chmod 0755 "$launcher"
     run_root install -o root -g root -m 0755 "$launcher" /usr/local/bin/wisp-greeter
@@ -121,6 +130,13 @@ EOF
     local greeter_config
     greeter_config="$(mktemp)"
     cat > "$greeter_config" <<EOF
+input {
+    touchpad {
+        tap
+        natural-scroll
+    }
+}
+
 spawn-at-startup "quickshell" "-p" "$PROJECT_DIR/greeter.qml"
 
 prefer-no-csd
@@ -171,6 +187,7 @@ setup_access() {
     need_command setfacl
 
     mkdir -p "$CONFIG_DIR"
+    setfacl -m "u:$GREETER_USER:x" "$HOME"
     setfacl -R -m "u:$GREETER_USER:rwX" "$PROJECT_DIR" "$CONFIG_DIR"
     find "$PROJECT_DIR" "$CONFIG_DIR" -type d -exec setfacl -m "d:u:$GREETER_USER:rwx" {} +
 }

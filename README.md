@@ -55,6 +55,17 @@ sudo systemctl restart greetd
 
 The greeter loads `./greeter.qml` and shares wallpaper and configuration data with the desktop shell.
 
+## Run the Lockscreen
+
+The desktop shell owns the PAM-authenticated lockscreen. With the shell running,
+trigger it through IPC:
+
+```bash
+quickshell ipc call lock lock
+```
+
+It covers every detected screen and hides after the configured user authenticates successfully.
+
 ## Configuration
 
 Runtime files are stored in:

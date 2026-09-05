@@ -33,7 +33,7 @@ Scope {
                     id: sourceImage
                     anchors.fill: parent
                     visible: WallpaperService.hasWallpaper
-                    source: WallpaperService.currentWallpaper
+                    source: WallpaperService.imageSource
                     fillMode: Image.PreserveAspectCrop
                     asynchronous: true
                     cache: true
